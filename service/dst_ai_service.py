@@ -375,6 +375,7 @@ class FileBridge:
         }
         with self.state_lock:
             data["state"] = dict(self.state)
+        LOG.info("AI chat request received from %s", data["player_name"])
         self.executor.submit(self._process, data)
 
     def _process(self, data: dict[str, Any]) -> None:
@@ -390,6 +391,7 @@ class FileBridge:
                 answer = "回答问题时出错了，请稍后重试。"
         try:
             self._write_response(str(data["player_name"]), answer)
+            LOG.info("AI response delivered for %s", data["player_name"])
         except OSError:
             LOG.exception("cannot write mod response file")
 
@@ -398,6 +400,7 @@ class FileBridge:
         handle = None
         inode = None
         position = 0
+        opened_once = False
         while True:
             try:
                 stat = path.stat()
@@ -406,7 +409,14 @@ class FileBridge:
                         handle.close()
                     handle = path.open("r", encoding="utf-8", errors="replace")
                     inode = stat.st_ino
-                    handle.seek(0, os.SEEK_END)
+                    if opened_once:
+                        # A rotated or truncated log may already contain new
+                        # lines by the time this polling loop notices it.
+                        handle.seek(0)
+                    else:
+                        # Do not replay historical chat on service startup.
+                        handle.seek(0, os.SEEK_END)
+                        opened_once = True
                     position = handle.tell()
                 handle.seek(position)
                 for line in handle.readlines():

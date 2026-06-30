@@ -1,0 +1,21 @@
+[Unit]
+Description=DST AI Assistant companion service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dst-ai
+Group=dst-ai
+ExecStart=/usr/bin/python3 /opt/dst-ai-assistant/dst_ai_service.py --host 127.0.0.1 --port 8765 --config /var/lib/dst-ai-assistant/config.json --chat-log /opt/dst-server/DoNotStarveTogether/MyDediServer/Master/server_chat_log.txt --server-log /opt/dst-server/DoNotStarveTogether/MyDediServer/Master/server_log.txt --response-file /opt/dst-server/server/mods/dst_ai_assistant/response.lua
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/dst-ai-assistant /opt/dst-server/server/mods/dst_ai_assistant
+MemoryMax=128M
+
+[Install]
+WantedBy=multi-user.target
